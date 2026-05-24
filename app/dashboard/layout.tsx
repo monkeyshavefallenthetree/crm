@@ -279,108 +279,106 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Profile */}
-        {profile && (
-          <div
+        <div
+          style={{
+            padding: 12,
+            flexShrink: 0,
+            position: "relative",
+            borderTop: "1px solid var(--border-subtle)",
+          }}
+        >
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
             style={{
-              padding: 12,
-              flexShrink: 0,
-              position: "relative",
-              borderTop: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.18s ease",
+              justifyContent: sidebarOpen ? "flex-start" : "center",
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-surface)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
           >
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+            <div
               style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                transition: "all 0.18s ease",
-                justifyContent: sidebarOpen ? "flex-start" : "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#fff",
+                background: "var(--brand)",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-surface)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
             >
-              <div
+              {profile?.full_name?.[0]?.toUpperCase() || "U"}
+            </div>
+            {sidebarOpen && (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", textAlign: "left" }}>
+                    {profile?.full_name || "User"}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500, textTransform: "capitalize" }}>
+                    {profile?.role || "Member"}
+                  </span>
+                </div>
+                <ChevronDown size={14} style={{ marginLeft: "auto", color: "var(--text-muted)", flexShrink: 0 }} />
+              </>
+            )}
+          </button>
+
+          {dropdownOpen && (
+            <div
+              className="animate-pop-in"
+              style={{
+                position: "absolute",
+                bottom: "100%",
+                left: 12,
+                right: 12,
+                marginBottom: 8,
+                padding: 4,
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-default)",
+                borderRadius: 8,
+                boxShadow: "var(--shadow-lg)",
+              }}
+            >
+              <button
+                onClick={handleLogout}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "#fff",
-                  background: "var(--brand)",
+                  gap: 10,
+                  width: "100%",
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--rose)",
+                  background: "none",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  transition: "background 0.15s ease",
+                  fontFamily: "'Inter', sans-serif",
                 }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--rose-bg)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
               >
-                {profile.full_name?.[0]?.toUpperCase() || "U"}
-              </div>
-              {sidebarOpen && (
-                <>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", textAlign: "left" }}>
-                      {profile.full_name || "User"}
-                    </span>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500, textTransform: "capitalize" }}>
-                      {profile.role}
-                    </span>
-                  </div>
-                  <ChevronDown size={14} style={{ marginLeft: "auto", color: "var(--text-muted)", flexShrink: 0 }} />
-                </>
-              )}
-            </button>
-
-            {dropdownOpen && (
-              <div
-                className="animate-pop-in"
-                style={{
-                  position: "absolute",
-                  bottom: "100%",
-                  left: 12,
-                  right: 12,
-                  marginBottom: 8,
-                  padding: 4,
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border-default)",
-                  borderRadius: 8,
-                  boxShadow: "var(--shadow-lg)",
-                }}
-              >
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    width: "100%",
-                    padding: "8px 12px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "var(--rose)",
-                    background: "none",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    transition: "background 0.15s ease",
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "var(--rose-bg)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <LogOut size={15} /> Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+                <LogOut size={15} /> Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* ─── Main Content ─── */}
