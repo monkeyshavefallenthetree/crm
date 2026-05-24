@@ -2,11 +2,14 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail } from "lucide-react";
+import { ArrowRight, Lock, Mail, User, Shield } from "lucide-react";
 
 export default function LoginPage() {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,20 +21,52 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Demo bypass for admin
-      if (email === "ahmed@mft.com" && password === "admin123") {
-        document.cookie = "demo_bypass=true; path=/";
+      if (isRegistering) {
+        // Registration flow
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              role: role,
+            },
+          },
+        });
+        
+        if (signUpError) throw signUpError;
+        
+        if (data?.user) {
+          // Attempt to create profile manually in case there is no trigger
+          const { error: profileError } = await supabase.from("profiles").insert([
+            { id: data.user.id, full_name: fullName, role: role }
+          ]);
+          
+          if (profileError && profileError.code !== '23505') {
+            console.error("Profile creation error:", profileError);
+          }
+        }
+        
         router.push("/dashboard");
         router.refresh();
-        return;
-      }
+        
+      } else {
+        // Login flow
+        // Demo bypass for admin
+        if (email === "ahmed@mft.com" && password === "admin123") {
+          document.cookie = "demo_bypass=true; path=/";
+          router.push("/dashboard");
+          router.refresh();
+          return;
+        }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -97,10 +132,10 @@ export default function LoginPage() {
             <span className="font-heading" style={{ fontWeight: 700, fontSize: 24, color: "#fff" }}>M</span>
           </div>
           <h1 className="font-heading" style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-primary)", margin: 0 }}>
-            Welcome back
+            {isRegistering ? "Create an account" : "Welcome back"}
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6 }}>
-            Sign in to your MFT CRM workspace
+            {isRegistering ? "Sign up for your MFT CRM workspace" : "Sign in to your MFT CRM workspace"}
           </p>
         </div>
 
@@ -114,6 +149,47 @@ export default function LoginPage() {
           }}
         >
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            
+            {isRegistering && (
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--text-muted)",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  Full Name
+                </label>
+                <div style={{ position: "relative" }}>
+                  <User
+                    size={16}
+                    style={{
+                      position: "absolute",
+                      left: 14,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--text-muted)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    className="input"
+                    style={{ paddingLeft: 40 }}
+                    type="text"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    required={isRegistering}
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label
                 style={{
@@ -151,6 +227,7 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            
             <div>
               <label
                 style={{
@@ -190,6 +267,47 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {isRegistering && (
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--text-muted)",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  Role
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Shield
+                    size={16}
+                    style={{
+                      position: "absolute",
+                      left: 14,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--text-muted)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <select
+                    className="input"
+                    style={{ paddingLeft: 40, appearance: "none", cursor: "pointer", WebkitAppearance: "none", MozAppearance: "none", width: "100%", height: "100%" }}
+                    value={role}
+                    onChange={e => setRole(e.target.value)}
+                    required={isRegistering}
+                  >
+                    <option value="user" style={{ background: "var(--bg-card)", color: "var(--text-primary)" }}>User</option>
+                    <option value="admin" style={{ background: "var(--bg-card)", color: "var(--text-primary)" }}>Admin</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div
                 style={{
@@ -219,14 +337,43 @@ export default function LoginPage() {
                 opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? "Signing in..." : <>Sign In <ArrowRight size={15} /></>}
+              {loading ? (isRegistering ? "Signing up..." : "Signing in...") : (
+                <>{isRegistering ? "Create Account" : "Sign In"} <ArrowRight size={15} /></>
+              )}
             </button>
           </form>
+
+          <div style={{ marginTop: 24, textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError("");
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: 13,
+                cursor: "pointer",
+                textDecoration: "underline",
+                textUnderlineOffset: 4,
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = "var(--text-primary)"}
+              onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
+            >
+              {isRegistering 
+                ? "Already have an account? Sign In" 
+                : "Don't have an account? Sign Up"}
+            </button>
+          </div>
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-muted)", marginTop: 20 }}>
-          Contact your admin to get access
-        </p>
+        {!isRegistering && (
+          <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-muted)", marginTop: 20 }}>
+            Contact your admin to get access
+          </p>
+        )}
       </div>
     </div>
   );
