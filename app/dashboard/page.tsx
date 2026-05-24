@@ -29,8 +29,20 @@ export default function DashboardPage() {
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Check mft_session cookie for user identity
+      const mftCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('mft_session='));
+      const mftSession = mftCookie
+        ? JSON.parse(decodeURIComponent(mftCookie.split('=').slice(1).join('=')))
+        : null;
+
       const isDemo = document.cookie.includes('demo_bypass=true');
-      if (isDemo && !user) {
+
+      if (mftSession) {
+        setProfile({ id: mftSession.id, full_name: mftSession.full_name || "User", role: mftSession.role || "user" });
+      } else if (isDemo && !user) {
         setProfile({ id: '00000000-0000-0000-0000-000000000000', full_name: 'Ahmed', role: 'admin' });
       } else if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();

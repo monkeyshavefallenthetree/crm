@@ -63,9 +63,22 @@ export default function TableDetailPage() {
       if (t) setTable(t);
       
       const { data: { user } } = userRes;
+
+      // Check mft_session cookie for user identity
+      const mftCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('mft_session='));
+      const mftSession = mftCookie
+        ? JSON.parse(decodeURIComponent(mftCookie.split('=').slice(1).join('=')))
+        : null;
+
       const isDemo = document.cookie.includes('demo_bypass=true');
-      if (isDemo && !user) setProfile({ id: '00000000-0000-0000-0000-000000000000', full_name: 'Ahmed', role: 'admin' });
-      else if (user) {
+
+      if (mftSession) {
+        setProfile({ id: mftSession.id, full_name: mftSession.full_name || "User", role: mftSession.role || "user" });
+      } else if (isDemo && !user) {
+        setProfile({ id: '00000000-0000-0000-0000-000000000000', full_name: 'Ahmed', role: 'admin' });
+      } else if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) setProfile(data);
       }
@@ -96,10 +109,7 @@ export default function TableDetailPage() {
 
   async function addNote() {
     if (!newNote.trim() || !selectedLead || !profile) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const isDemo = document.cookie.includes('demo_bypass=true');
-    if (!user && !isDemo) return;
-    const authorId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+    const authorId = profile.id;
     const { error } = await supabase.from("lead_notes").insert({ lead_id: selectedLead.id, author_id: authorId, author_name: profile.full_name, content: newNote.trim(), note_type: "reply" });
     if (!error) { setNewNote(""); loadNotes(selectedLead.id); showToast("Note added"); }
   }
