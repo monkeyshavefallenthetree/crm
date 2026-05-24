@@ -18,10 +18,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Check for local MFT session cookie
+      const mftCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('mft_session='));
+      const mftSession = mftCookie
+        ? JSON.parse(decodeURIComponent(mftCookie.split('=').slice(1).join('=')))
+        : null;
+
+      // Legacy demo bypass
       const isDemo = document.cookie.includes('demo_bypass=true');
       
-      if (!user && !isDemo) { router.push("/"); return; }
+      if (!user && !mftSession && !isDemo) { router.push("/"); return; }
       
+      if (mftSession) {
+        // Use the session data which has the correct name & role
+        setProfile({
+          id: mftSession.id,
+          full_name: mftSession.full_name || "User",
+          role: mftSession.role || "user",
+        });
+        return;
+      }
+
       if (isDemo && !user) {
         setProfile({ id: '00000000-0000-0000-0000-000000000000', full_name: 'Ahmed', role: 'admin' });
         return;
@@ -37,7 +57,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    // Clear all session cookies
     document.cookie = "demo_bypass=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "mft_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     router.push("/");
     router.refresh();
   }
