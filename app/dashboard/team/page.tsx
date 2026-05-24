@@ -25,9 +25,20 @@ export default function TeamPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Check mft_session cookie for role
+      const mftCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('mft_session='));
+      const mftSession = mftCookie
+        ? JSON.parse(decodeURIComponent(mftCookie.split('=').slice(1).join('=')))
+        : null;
+
       const isDemo = document.cookie.includes('demo_bypass=true');
 
-      if (isDemo && !user) {
+      if (mftSession) {
+        setMyRole(mftSession.role || "user");
+      } else if (isDemo && !user) {
         setMyRole("admin");
       } else if (user) {
         const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
@@ -53,19 +64,29 @@ export default function TeamPage() {
     setAddLoading(true);
 
     try {
-      const { error } = await supabase.rpc("admin_create_user", {
-        p_email: newEmail,
-        p_password: newPassword,
-        p_full_name: newName,
-        p_role: newRole,
-      });
+      // Check if a profile with this name already exists
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("full_name", newName.trim())
+        .limit(1);
 
-      if (error) throw error;
+      if (existing && existing.length > 0) {
+        throw new Error(`A user named "${newName.trim()}" already exists.`);
+      }
+
+      // Create the profile directly
+      const newId = crypto.randomUUID();
+      const { error: insertError } = await supabase.from("profiles").insert([
+        { id: newId, full_name: newName.trim(), role: newRole },
+      ]);
+
+      if (insertError) throw new Error(insertError.message);
 
       const { data: refreshed } = await supabase.from("profiles").select("*").order("created_at", { ascending: true });
       if (refreshed) setMembers(refreshed);
 
-      showToast(`User ${newName} created successfully`);
+      showToast(`User ${newName.trim()} created successfully`);
       setShowAddUser(false);
       setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("user");
     } catch (err: unknown) {

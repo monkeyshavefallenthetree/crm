@@ -43,10 +43,21 @@ export default function LoginPage() {
           // If Supabase Auth rejects the email (known issue),
           // fall back to local account creation
           if (signUpError.message.includes("invalid") || signUpError.message.includes("email")) {
+            // Check if a profile with this name already exists
+            const { data: existing } = await supabase
+              .from("profiles")
+              .select("id")
+              .ilike("full_name", fullName.trim())
+              .limit(1);
+
+            if (existing && existing.length > 0) {
+              throw new Error("An account with this name already exists. Try signing in instead.");
+            }
+
             // Create a profile row directly
             const newId = crypto.randomUUID();
             const { error: profileError } = await supabase.from("profiles").insert([
-              { id: newId, full_name: fullName, role },
+              { id: newId, full_name: fullName.trim(), role },
             ]);
 
             if (profileError && profileError.code !== "23505") {
@@ -54,7 +65,7 @@ export default function LoginPage() {
             }
 
             // Set session cookie with user info
-            const session = JSON.stringify({ id: newId, full_name: fullName, role, email });
+            const session = JSON.stringify({ id: newId, full_name: fullName.trim(), role, email });
             document.cookie = `mft_session=${encodeURIComponent(session)}; path=/; max-age=86400`;
             router.push("/dashboard");
             router.refresh();
